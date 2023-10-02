@@ -130,19 +130,19 @@ function App() {
                             <button className="start-button" onClick={saveNickname} disabled={!nickname.trim()}>
                                 Submit Nickname And Create New Room
                             </button>
-                                <input
-                                    type="text"
-                                    placeholder="Enter room"
-                                    className="nickname-input"
-                                    onChange={(e) => setRoomName(e.target.value)}
-                                    onKeyUp={(e) => {
-                                        if (e.key === 'Enter') {
-                                            saveNickname();
-                                            selectRoom();
-                                        }
-                                    }}
-                                />
-                            <button className="start-button" onClick={handleJoinRoomClick}>
+                            <input
+                                type="text"
+                                placeholder="Enter room"
+                                className="nickname-input"
+                                onChange={(e) => setRoomName(e.target.value)}
+                                onKeyUp={(e) => {
+                                    if (e.key === 'Enter') {
+                                        saveNickname();
+                                        selectRoom();
+                                    }
+                                }}
+                            />
+                            <button className="start-button" onClick={handleJoinRoomClick} disabled={!nickname.trim()} >
                                 Join Room
                             </button>
                         </div>
@@ -178,7 +178,8 @@ function App() {
                             {winnerId &&
                                 <div className="winner-alert">
                                     <span>Player</span>
-                                    <span className="winner__id">  {userList.find(user => user.nickname === winnerId)?.nickname}</span>
+                                    <span
+                                        className="winner__id">  {userList.find(user => user.nickname === winnerId)?.nickname}</span>
                                     <span>has won!</span>
                                 </div>}
                         </div>

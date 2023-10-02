@@ -126,6 +126,7 @@
     border-radius: 6px;
     height: 5vh;
     width: fit-content;
+    font-size: 2vh;
 }
 
 .start-button:hover {
@@ -153,7 +154,7 @@
 
 .nickname-input {
     background-color: #1d1d1d;
-    color: white;
+    color: #ff6c00;
     font-size: 20px;
     height: 4vh;
     width: fit-content;
@@ -163,6 +164,7 @@
     align-content: center;
     align-items: center;
     justify-content: center;
+    text-align: center;
 }
 
 ::-webkit-input-placeholder {
