@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
 import io from 'socket.io-client';
+import Clipboard from 'react-clipboard.js';
 
 type User = {
     score: number;
@@ -11,11 +12,15 @@ const socket = io('http://192.168.10.10:4000');
 
 function App() {
     const [letter, setLetter] = useState<string>('');
-    const [userScore, setUserScore] = useState<number>(0);
     const [winnerId, setWinnerId] = useState<string | null>(null);
-    const [gameStarted, setGameStarted] = useState(false);
     const [nickname, setNickname] = useState<string>('');
+    const [roomName, setRoomName] = useState<string | null>(null);
+
+    const [userScore, setUserScore] = useState<number>(0);
+
     const [userList, setUserList] = useState<User[]>([]);
+
+    const [gameStarted, setGameStarted] = useState(false);
     const [isNicknameConfirmed, setNicknameConfirmed] = useState(false)
 
     useEffect(() => {
@@ -40,6 +45,10 @@ function App() {
             socket.on('updateUserList', (userList: { score: number; nickname: string }[]) => {
                 setUserList(userList);
             });
+
+            socket.on('roomName', (receivedRoomName: string) => {
+                setRoomName(receivedRoomName);
+            });
         };
         setupSocketListeners();
 
@@ -50,9 +59,7 @@ function App() {
     }, []);
 
     const handleKeyPress = (event: KeyboardEvent) => {
-        if (event.key === letter) {
-            socket.emit('correctKeyPress', {nickname: nickname, score: userScore});
-        }
+        socket.emit('checkLetter', event.key);
     };
 
     useEffect(() => {
@@ -61,13 +68,33 @@ function App() {
         });
     }, []);
 
+    const selectRoom = () => {
+        if (roomName) {
+            socket.emit('startGame', nickname, roomName);
+            setNicknameConfirmed(true);
+        }
+    };
+
+
     const startGame = () => {
         socket.emit('startGame');
     };
 
+    /*const selectRoom = () => {
+        if (roomName.trim()) {
+            socket.emit('joinRoom', roomName);
+            setRoomFull(true);
+        }
+    }*/
+
     const saveNickname = () => {
         socket.emit('startGame', nickname);
         setNicknameConfirmed(true);
+    };
+
+    const handleJoinRoomClick = () => {
+        saveNickname();
+        selectRoom();
     };
 
     useEffect(() => {
@@ -87,17 +114,45 @@ function App() {
             ) : (
                 <div>
                     {!isNicknameConfirmed ? (
-                        <div>
+                        <div className="start-screen">
                             <input
-                                type="text" placeholder="Enter your nickname" value={nickname} className="nickname-input"
+                                type="text"
+                                placeholder="Enter your nickname"
+                                value={nickname}
+                                className="nickname-input"
                                 onChange={(e) => setNickname(e.target.value)}
+                                onKeyUp={(e) => {
+                                    if (e.key === 'Enter' && nickname.trim()) {
+                                        saveNickname();
+                                    }
+                                }}
                             />
                             <button className="start-button" onClick={saveNickname} disabled={!nickname.trim()}>
-                                Submit Nickname
+                                Submit Nickname And Create New Room
+                            </button>
+                                <input
+                                    type="text"
+                                    placeholder="Enter room"
+                                    className="nickname-input"
+                                    onChange={(e) => setRoomName(e.target.value)}
+                                    onKeyUp={(e) => {
+                                        if (e.key === 'Enter') {
+                                            saveNickname();
+                                            selectRoom();
+                                        }
+                                    }}
+                                />
+                            <button className="start-button" onClick={handleJoinRoomClick}>
+                                Join Room
                             </button>
                         </div>
                     ) : (
-                        <div>
+                        <div className="main-content">
+                            <span className="simple-main-content-label">You are in room:</span>
+                            <Clipboard className="room-id" data-clipboard-text={roomName}>
+                                {roomName} <br/>
+                                <span className="button-small-text">Press to copy</span>
+                            </Clipboard>
                             <div className="cell">
                                 <svg width="100%" height="100%" viewBox="0 0 90 90">
                                     <text className="cell-text" x="50%" y="55%" textAnchor="middle"

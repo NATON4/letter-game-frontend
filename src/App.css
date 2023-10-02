@@ -9,10 +9,48 @@
     gap: 7px;
 }
 
+.simple-main-content-label {
+    font-size: 2vh;
+}
+
+.room-id {
+    width: fit-content;
+    height: fit-content;
+    border: 0.5px dotted black;
+    border-radius: 1vh;
+    background-color: #2d2d2d;
+    font-size: 2vh;
+    color: #ff6c00;
+    cursor: pointer;
+    transition: 50ms;
+}
+
+.room-id:hover {
+    color: #1d1d1d;
+}
+
+.room-id:active {
+    background-color: #ff6c00;
+}
+
+.button-small-text {
+    font-size: 1.2vh;
+    color: white;
+}
+
+.main-content {
+    display: flex;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 5px;
+}
+
 .cell {
     background-color: #1d1d1d;
-    height: 20vh;
-    width: 20vh;
+    max-height: 20vh;
+    max-width: 20vh;
     display: flex;
     color: white;
     align-items: center;
@@ -86,13 +124,20 @@
     color: white;
     border: none;
     border-radius: 6px;
-    height: 3vh;
-    width: 10vw;
+    height: 5vh;
+    width: fit-content;
 }
 
 .start-button:hover {
     background-color: #3d3d3d;
     cursor: pointer;
+}
+
+.start-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
 }
 
 .start-screen__button {
@@ -102,7 +147,7 @@
     border: none;
     border-radius: 9px;
     height: 10vh;
-    width: 20vw;
+    width: fit-content;
     font-size: 50px;
 }
 
@@ -111,7 +156,7 @@
     color: white;
     font-size: 20px;
     height: 4vh;
-    width: 12vw;
+    width: fit-content;
     border: none;
     display: flex;
     border-radius: 6px;
