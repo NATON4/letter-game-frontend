@@ -17,6 +17,7 @@ function App() {
     const [roomName, setRoomName] = useState<string | null>(null);
 
     const [userScore, setUserScore] = useState<number>(0);
+    const [winningScore, setWinningScore] = useState(20);
 
     const [userList, setUserList] = useState<User[]>([]);
 
@@ -58,6 +59,11 @@ function App() {
 
     }, []);
 
+    const handleWinningScoreChange = (newWinningScore: number) => {
+        setWinningScore(newWinningScore);
+        socket.emit('updateScoreToWin', newWinningScore);
+    };
+
     const handleKeyPress = (event: KeyboardEvent) => {
         socket.emit('checkLetter', event.key);
     };
@@ -75,17 +81,9 @@ function App() {
         }
     };
 
-
     const startGame = () => {
         socket.emit('startGame');
     };
-
-    /*const selectRoom = () => {
-        if (roomName.trim()) {
-            socket.emit('joinRoom', roomName);
-            setRoomFull(true);
-        }
-    }*/
 
     const saveNickname = () => {
         socket.emit('startGame', nickname);
@@ -145,6 +143,49 @@ function App() {
                             <button className="start-button" onClick={handleJoinRoomClick} disabled={!nickname.trim()} >
                                 Join Room
                             </button>
+                            <span>Choose score to win</span>
+                            <div className="winning-score-options">
+                                <label className="radio-input__label">
+                                    <input
+                                        className="radio-input"
+                                        type="radio"
+                                        name="winningScore"
+                                        value="10"
+                                        //checked={winningScore === 10}
+                                        onChange={() => {
+                                            handleWinningScoreChange(10);
+                                        }}
+                                    />
+                                    10
+                                </label>
+                                <label className="radio-input__label">
+                                    <input
+                                        className="radio-input"
+                                        type="radio"
+                                        name="winningScore"
+                                        value="20"
+                                        checked={winningScore === 20}
+                                        onChange={() => {
+                                            handleWinningScoreChange(20);
+                                        }}
+                                    />
+                                    20
+                                </label>
+                                <label className="radio-input__label">
+                                    <input
+                                        className="radio-input"
+                                        type="radio"
+                                        name="winningScore"
+                                        value="50"
+                                        //checked={winningScore === 50}
+                                        onChange={() => {
+                                            handleWinningScoreChange(50);
+                                        }}
+                                    />
+                                    50
+                                </label>
+                            </div>
+
                         </div>
                     ) : (
                         <div className="main-content">
@@ -169,8 +210,11 @@ function App() {
                                 <ul className="online-list">
                                     {userList
                                         .filter((user) => user.nickname !== "undefined")
+                                        .sort((a, b) => b.score - a.score)
                                         .map((user, index) => (
-                                            <li key={index}>{user.nickname} - Score: {user.score}</li>
+                                            <li key={index} className="online-list_user">
+                                                {user.nickname === nickname ? `You - Score: ${user.score}` : `${user.nickname} - Score: ${user.score}`}
+                                            </li>
                                         ))
                                     }
                                 </ul>
