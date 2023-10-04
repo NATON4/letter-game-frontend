@@ -8,6 +8,19 @@ type User = {
     nickname: string;
 };
 
+enum Events {
+    startGame = 'startGame',
+    updateScoreToWin = 'updateScoreToWin',
+    updateUserList = 'updateUserList',
+    setUserScore = 'userScore',
+    setGameStatus = 'gameStatus',
+    setRoomGame = 'roomName',
+    sentInitialLetter = 'initialLetter',
+    resetScores = 'resetScores',
+    showWinnerAlert = 'showWinnerAlert',
+    checkLetter = 'checkLetter',
+}
+
 const socket = io('http://192.168.10.10:4000');
 
 function App() {
@@ -26,28 +39,28 @@ function App() {
 
     useEffect(() => {
         const setupSocketListeners = () => {
-            socket.on('initialLetter', (initialLetter: string) => {
+            socket.on(Events.sentInitialLetter, (initialLetter: string) => {
                 setLetter(initialLetter);
             });
 
-            socket.on('userScore', (score: number) => {
+            socket.on(Events.setUserScore, (score: number) => {
                 setUserScore(score);
             });
 
-            socket.on('showWinnerAlert', (winnerId: string) => {
+            socket.on(Events.showWinnerAlert, (winnerId: string) => {
                 setWinnerId(winnerId);
             });
 
-            socket.on('resetScores', () => {
+            socket.on(Events.resetScores, () => {
                 setUserScore(0);
                 setWinnerId(null);
             });
 
-            socket.on('updateUserList', (userList: { score: number; nickname: string }[]) => {
+            socket.on(Events.updateUserList, (userList: { score: number; nickname: string }[]) => {
                 setUserList(userList);
             });
 
-            socket.on('roomName', (receivedRoomName: string) => {
+            socket.on(Events.setRoomGame, (receivedRoomName: string) => {
                 setRoomName(receivedRoomName);
             });
         };
@@ -61,32 +74,32 @@ function App() {
 
     const handleWinningScoreChange = (newWinningScore: number) => {
         setWinningScore(newWinningScore);
-        socket.emit('updateScoreToWin', newWinningScore);
+        socket.emit(Events.updateScoreToWin, newWinningScore);
     };
 
     const handleKeyPress = (event: KeyboardEvent) => {
-        socket.emit('checkLetter', event.key);
+        socket.emit(Events.checkLetter, event.key);
     };
 
     useEffect(() => {
-        socket.on('gameStatus', (isGameStarted: boolean) => {
+        socket.on(Events.setGameStatus, (isGameStarted: boolean) => {
             setGameStarted(isGameStarted);
         });
     }, []);
 
     const selectRoom = () => {
         if (roomName) {
-            socket.emit('startGame', nickname, roomName);
+            socket.emit(Events.startGame, nickname, roomName);
             setNicknameConfirmed(true);
         }
     };
 
     const startGame = () => {
-        socket.emit('startGame');
+        socket.emit(Events.startGame);
     };
 
     const saveNickname = () => {
-        socket.emit('startGame', nickname);
+        socket.emit(Events.startGame, nickname);
         setNicknameConfirmed(true);
     };
 
@@ -151,7 +164,6 @@ function App() {
                                         type="radio"
                                         name="winningScore"
                                         value="10"
-                                        //checked={winningScore === 10}
                                         onChange={() => {
                                             handleWinningScoreChange(10);
                                         }}
@@ -177,7 +189,6 @@ function App() {
                                         type="radio"
                                         name="winningScore"
                                         value="50"
-                                        //checked={winningScore === 50}
                                         onChange={() => {
                                             handleWinningScoreChange(50);
                                         }}
@@ -198,7 +209,9 @@ function App() {
                                 <svg width="100%" height="100%" viewBox="0 0 90 90">
                                     <text className="cell-text" x="50%" y="55%" textAnchor="middle"
                                           dominantBaseline="middle"
-                                          fontSize="300%" fill="white">{letter}</text>
+                                          fontSize="300%" fill="white">
+                                          {letter}
+                                    </text>
                                 </svg>
                             </div>
                             <div className="score">
@@ -213,7 +226,9 @@ function App() {
                                         .sort((a, b) => b.score - a.score)
                                         .map((user, index) => (
                                             <li key={index} className="online-list_user">
-                                                {user.nickname === nickname ? `You - Score: ${user.score}` : `${user.nickname} - Score: ${user.score}`}
+                                               {user.nickname === nickname
+                                                ? `You - Score: ${user.score}`
+                                                : `${user.nickname} - Score: ${user.score}`}
                                             </li>
                                         ))
                                     }
