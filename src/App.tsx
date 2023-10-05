@@ -148,8 +148,7 @@ function App() {
                                 onChange={(e) => setRoomName(e.target.value)}
                                 onKeyUp={(e) => {
                                     if (e.key === 'Enter') {
-                                        saveNickname();
-                                        selectRoom();
+                                        handleJoinRoomClick();
                                     }
                                 }}
                             />
