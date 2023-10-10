@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import io from 'socket.io-client';
 import Clipboard from 'react-clipboard.js';
@@ -19,56 +19,90 @@ enum Events {
     resetScores = 'resetScores',
     showWinnerAlert = 'showWinnerAlert',
     checkLetter = 'checkLetter',
+    resetLetters = 'resetLetters',
+    resetGame = 'resetGame',
+    joinRoom = 'joinRoom',
 }
 
-const socket = io('http://192.168.10.10:4000');
+const socket = io('http://192.168.11.145:4000');
 
 function App() {
     const [letter, setLetter] = useState<string>('');
     const [winnerId, setWinnerId] = useState<string | null>(null);
-    const [nickname, setNickname] = useState<string>('');
+    const [nickname, setNickname] = useState<string>('1');
     const [roomName, setRoomName] = useState<string | null>(null);
 
     const [userScore, setUserScore] = useState<number>(0);
-    const [winningScore, setWinningScore] = useState(20);
+    const [winningScore, setWinningScore] = useState<number>(2);
 
     const [userList, setUserList] = useState<User[]>([]);
 
-    const [gameStarted, setGameStarted] = useState(false);
-    const [isNicknameConfirmed, setNicknameConfirmed] = useState(false)
+    const [gameStarted, setGameStarted] = useState<boolean>(false);
+    const [isNicknameConfirmed, setNicknameConfirmed] = useState<boolean>(false);
+    const [resetting, setResetting] = useState<boolean>(false);
+    useEffect(() => {
+        console.log({ winnerId, nickname, roomName, userScore, userList, gameStarted, isNicknameConfirmed })
+    });
 
     useEffect(() => {
-        const setupSocketListeners = () => {
-            socket.on(Events.sentInitialLetter, (initialLetter: string) => {
-                setLetter(initialLetter);
-            });
+        socket.on(Events.sentInitialLetter, (initialLetter: string) => {
+            console.error('sentInitialLetter')
+            setLetter(initialLetter);
+        });
 
-            socket.on(Events.setUserScore, (score: number) => {
-                setUserScore(score);
-            });
+        socket.on(Events.setUserScore, (score: number) => {
+            console.error('setUserScore')
+            setUserScore(score);
+        });
 
-            socket.on(Events.showWinnerAlert, (winnerId: string) => {
-                setWinnerId(winnerId);
-            });
+        socket.on(Events.showWinnerAlert, (winnerId: string) => {
+            console.error('showWinnerAlert')
+            setWinnerId(winnerId);
+        });
 
-            socket.on(Events.resetScores, () => {
-                setUserScore(0);
-                setWinnerId(null);
-            });
+        socket.on(Events.updateScoreToWin, (score: number) => {
+            setWinningScore(score);
+        });
 
-            socket.on(Events.updateUserList, (userList: { score: number; nickname: string }[]) => {
-                setUserList(userList);
-            });
+        socket.on(Events.updateUserList, (userList: { score: number; nickname: string }[]) => {
+            console.error('updateUserList')
+            setUserList(userList);
+        });
 
-            socket.on(Events.setRoomGame, (receivedRoomName: string) => {
-                setRoomName(receivedRoomName);
-            });
-        };
-        setupSocketListeners();
+        socket.on(Events.resetGame, () => {
+            setResetting(false);
+            setUserScore(0);
+            setWinnerId(null);
+        });
+
+        socket.on(Events.setRoomGame, (receivedRoomName: string) => {
+            console.error('setRoomGame')
+            setRoomName(receivedRoomName);
+        });
+
+        socket.on(Events.resetScores, () => {
+            console.error('resetScores')
+            setResetting(false);
+            setUserScore(0);
+            setWinnerId(null);
+        });
+
+        socket.on(Events.resetLetters, (letters: string[]) => {
+            console.error('resetLetters')
+            setLetter(letters[0]);
+            setWinnerId(null);
+        });
+
+        socket.on(Events.setGameStatus, (isGameStarted: boolean) => {
+            console.error('setGameStatus')
+            setGameStarted(isGameStarted);
+        });
 
         return () => {
-            window.removeEventListener('keydown', handleKeyPress);
-        };
+            for (const eventName in Events) {
+                socket.off(eventName)
+            }
+        }
 
     }, []);
 
@@ -78,20 +112,21 @@ function App() {
     };
 
     const handleKeyPress = (event: KeyboardEvent) => {
+        console.log('0000')
         socket.emit(Events.checkLetter, event.key);
     };
 
-    useEffect(() => {
-        socket.on(Events.setGameStatus, (isGameStarted: boolean) => {
-            setGameStarted(isGameStarted);
-        });
-    }, []);
-
     const selectRoom = () => {
         if (roomName) {
-            socket.emit(Events.startGame, nickname, roomName);
+            socket.emit(Events.startGame, nickname, roomName, winningScore);
             setNicknameConfirmed(true);
         }
+    };
+
+    const resetGame = () => {
+        socket.emit(Events.resetScores, roomName);
+        setResetting(true);
+        setUserScore(0);
     };
 
     const startGame = () => {
@@ -106,6 +141,7 @@ function App() {
     const handleJoinRoomClick = () => {
         saveNickname();
         selectRoom();
+        socket.emit(Events.joinRoom, roomName);
     };
 
     useEffect(() => {
@@ -114,7 +150,7 @@ function App() {
         return () => {
             window.removeEventListener('keydown', handleKeyPress);
         };
-    }, [letter]);
+    }, []);
 
     return (
         <div className="App">
@@ -125,38 +161,55 @@ function App() {
             ) : (
                 <div>
                     {!isNicknameConfirmed ? (
-                        <div className="start-screen">
-                            <input
-                                type="text"
-                                placeholder="Enter your nickname"
-                                value={nickname}
-                                className="nickname-input"
-                                onChange={(e) => setNickname(e.target.value)}
-                                onKeyUp={(e) => {
-                                    if (e.key === 'Enter' && nickname.trim()) {
-                                        saveNickname();
-                                    }
-                                }}
-                            />
-                            <button className="start-button" onClick={saveNickname} disabled={!nickname.trim()}>
-                                Submit Nickname And Create New Room
-                            </button>
-                            <input
-                                type="text"
-                                placeholder="Enter room"
-                                className="nickname-input"
-                                onChange={(e) => setRoomName(e.target.value)}
-                                onKeyUp={(e) => {
-                                    if (e.key === 'Enter') {
-                                        handleJoinRoomClick();
-                                    }
-                                }}
-                            />
-                            <button className="start-button" onClick={handleJoinRoomClick} disabled={!nickname.trim()} >
-                                Join Room
-                            </button>
+                        <div className="waiting-room">
+                            <h1 className='waiting-title'>Hello dear, good luck! <br />
+                                This game is for the fastest!
+                            </h1>
+                            <div className='waiting-input'>
+                                <input
+                                    type="text"
+                                    placeholder="Enter your nickname"
+                                    value={nickname}
+                                    className="nickname-input"
+                                    onChange={(e) => setNickname(e.target.value)}
+                                    onKeyUp={(e) => {
+                                        if (e.key === 'Enter' && nickname.trim()) {
+                                            saveNickname();
+                                        }
+                                    }}
+                                />
+                                <button className="start-button" onClick={saveNickname} disabled={!nickname.trim()}>
+                                    Create New Room
+                                </button>
+                                <input
+                                    type="text"
+                                    placeholder="Enter room"
+                                    className="nickname-input"
+                                    onChange={(e) => setRoomName(e.target.value)}
+                                    onKeyUp={(e) => {
+                                        if (e.key === 'Enter') {
+                                            handleJoinRoomClick();
+                                        }
+                                    }}
+                                />
+                                <button className="start-button" onClick={handleJoinRoomClick} disabled={!nickname.trim()} >
+                                    Join Room
+                                </button>
+                            </div>
                             <span>Choose score to win</span>
                             <div className="winning-score-options">
+                                <label className="radio-input__label">
+                                    <input
+                                        className="radio-input"
+                                        type="radio"
+                                        name="winningScore"
+                                        value="2"
+                                        onChange={() => {
+                                            handleWinningScoreChange(2);
+                                        }}
+                                    />
+                                    2
+                                </label>
                                 <label className="radio-input__label">
                                     <input
                                         className="radio-input"
@@ -195,27 +248,26 @@ function App() {
                                     50
                                 </label>
                             </div>
-
                         </div>
                     ) : (
                         <div className="main-content">
                             <span className="simple-main-content-label">You are in room:</span>
                             <Clipboard className="room-id" data-clipboard-text={roomName}>
-                                {roomName} <br/>
+                                {roomName} <br />
                                 <span className="button-small-text">Press to copy</span>
                             </Clipboard>
                             <div className="cell">
                                 <svg width="100%" height="100%" viewBox="0 0 90 90">
                                     <text className="cell-text" x="50%" y="55%" textAnchor="middle"
-                                          dominantBaseline="middle"
-                                          fontSize="300%" fill="white">
-                                          {letter}
+                                        dominantBaseline="middle"
+                                        fontSize="300%" fill="white">
+                                        {letter}
                                     </text>
                                 </svg>
                             </div>
                             <div className="score">
                                 <span className="score__label"> Score: </span> <span
-                                className="score__number">{userScore}</span>
+                                    className="score__number">{userScore}</span>
                             </div>
                             <div className="user-list">
                                 <span className="online-users-label">Online Users:</span>
@@ -225,9 +277,9 @@ function App() {
                                         .sort((a, b) => b.score - a.score)
                                         .map((user, index) => (
                                             <li key={index} className="online-list_user">
-                                               {user.nickname === nickname
-                                                ? `You - Score: ${user.score}`
-                                                : `${user.nickname} - Score: ${user.score}`}
+                                                {user.nickname === nickname
+                                                    ? `You - Score: ${user.score}`
+                                                    : `${user.nickname} - Score: ${user.score}`}
                                             </li>
                                         ))
                                     }
@@ -239,6 +291,7 @@ function App() {
                                     <span
                                         className="winner__id">  {userList.find(user => user.nickname === winnerId)?.nickname}</span>
                                     <span>has won!</span>
+                                    <button className='winner-button' onClick={resetGame}>Reset Game</button>
                                 </div>}
                         </div>
                     )}
